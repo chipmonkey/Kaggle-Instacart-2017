@@ -8,7 +8,6 @@ setwd("F:/Competitions/201707 Kaggle Instacart/scripts")
 
 library(tidyverse)
 
-
 # Load Data ---------------------------------------------------------------
 
 aisles <- read_csv('../input/aisles.csv.zip')
@@ -17,6 +16,7 @@ orderp <- read_csv('../input/order_products__prior.csv.zip')
 ordert <- read_csv('../input/order_products__train.csv.zip')
 orders <- read_csv('../input/orders.csv.zip')
 products <- read_csv('../input/products.csv.zip')
+ss <- read_csv('../input/sample_submission.csv.zip')
 
 
 # Reshape data ------------------------------------------------------------
