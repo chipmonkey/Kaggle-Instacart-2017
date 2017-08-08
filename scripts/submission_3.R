@@ -59,8 +59,19 @@ prd <- orders_products %>%
     prod_second_orders = sum(product_time == 2)
   )
 
-prd_text <- products %>% unnest_tokens(word, product_name) %>%
-   select('product_id', 'word')
+prd_text <- products %>% unnest_tokens(words, product_name, token="words") %>%
+   select('product_id', 'words')
+
+prd_2gram <- products %>% unnest_tokens(words, product_name, token="ngrams", n=2) %>%
+  select('product_id', 'words')
+
+prd_tokens <- rbind(prd_text, prd_2gram)
+
+topwords <- count(prd_tokens, words, sort = TRUE)
+topwords <- topwords[topwords$n>200,] # ARBITRARY!  Tune this...
+
+
+# rm(prd_text) ; rm(prd_2gram)
 
 prd$prod_reorder_probability <- prd$prod_second_orders / prd$prod_first_orders
 prd$prod_reorder_times <- 1 + prd$prod_reorders / prd$prod_first_orders
@@ -68,7 +79,7 @@ prd$prod_reorder_ratio <- prd$prod_reorders / prd$prod_orders
 
 prd <- prd %>% select(-prod_reorders, -prod_first_orders, -prod_second_orders)
 
-rm(products)
+# rm(products)
 gc()
 
 # Users -------------------------------------------------------------------
