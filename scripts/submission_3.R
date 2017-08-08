@@ -68,7 +68,7 @@ prd_2gram <- products %>% unnest_tokens(words, product_name, token="ngrams", n=2
 prd_tokens <- rbind(prd_text, prd_2gram)
 
 topwords <- count(prd_tokens, words, sort = TRUE)
-topwords <- topwords[topwords$n>200,] # ARBITRARY!  Tune this...
+topwords <- topwords[topwords$n>200,] # ARBITRARY!  Tune this... Or use other mechanisms
 
 
 # rm(prd_text) ; rm(prd_2gram)
