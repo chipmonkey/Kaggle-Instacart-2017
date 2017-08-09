@@ -9,7 +9,7 @@
 ###########################################################################################################
 
 rm(list = ls())
-setwd("~/Kaggle Instacart/scripts")
+setwd("./scripts")
 
 # library(data.table)
 # library(dplyr)
@@ -70,6 +70,7 @@ prd_tokens <- rbind(prd_text, prd_2gram)
 topwords <- count(prd_tokens, words, sort = TRUE)
 topwords <- topwords[topwords$n>200,] # ARBITRARY!  Tune this... Or use other mechanisms
 
+prd_tokens_short <- prd_tokens[prd_tokens$words %in% topwords$words,]
 
 # rm(prd_text) ; rm(prd_2gram)
 
@@ -78,6 +79,15 @@ prd$prod_reorder_times <- 1 + prd$prod_reorders / prd$prod_first_orders
 prd$prod_reorder_ratio <- prd$prod_reorders / prd$prod_orders
 
 prd <- prd %>% select(-prod_reorders, -prod_first_orders, -prod_second_orders)
+
+ii <-  unique(prd$product_id)
+jj <- unique(prd_tokens_short$words)
+id_i <- match(prd$product_id, ii)
+id_j <- match(prd$, jj)
+idij <- cbind(id_i, id_j)
+
+wordhash <- Matrix(0, nrow=length(ii), ncol=length(jj),
+                   dimnames = list(ii,jj), sparse = TRUE)
 
 # rm(products)
 gc()
