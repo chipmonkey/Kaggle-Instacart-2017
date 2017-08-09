@@ -1,10 +1,8 @@
 
 ###########################################################################################################
 #
-# Kaggle Instacart competition
-# Fabien Vavrand, June 2017
-# Simple xgboost starter, score 0.3791 on LB
-# Products selection is based on product by product binary classification, with a global threshold (0.21)
+# Borrowed From: https://www.kaggle.com/fabienvs/instacart-xgboost-starter-lb-0-3791/code
+# ---Chipmonkey
 #
 ###########################################################################################################
 
@@ -16,6 +14,7 @@ setwd("./scripts")
 # library(tidyr)
 library(tidyverse)
 library(tidytext)
+library(Matrix)
 
 # Load Data ---------------------------------------------------------------
 aisles <- read_csv('../input/aisles.csv.zip')
@@ -67,10 +66,12 @@ prd_2gram <- products %>% unnest_tokens(words, product_name, token="ngrams", n=2
 
 prd_tokens <- rbind(prd_text, prd_2gram)
 
-topwords <- count(prd_tokens, words, sort = TRUE)
-topwords <- topwords[topwords$n>200,] # ARBITRARY!  Tune this... Or use other mechanisms
+topwords <- count(prd_tokens, words, sort = TRUE) %>%
+  filter(!words %in% stop_words$word)
+topwords <- topwords[topwords$n>500,] # ARBITRARY!  Tune this... Or use other mechanisms
 
-prd_tokens_short <- prd_tokens[prd_tokens$words %in% topwords$words,]
+prd_tokens_short <- prd_tokens[prd_tokens$words %in% topwords$words,] %>%
+  filter(product_id %in% prd$product_id)  # Because some aren't.  That's weird
 
 # rm(prd_text) ; rm(prd_2gram)
 
@@ -80,14 +81,29 @@ prd$prod_reorder_ratio <- prd$prod_reorders / prd$prod_orders
 
 prd <- prd %>% select(-prod_reorders, -prod_first_orders, -prod_second_orders)
 
-ii <-  unique(prd$product_id)
-jj <- unique(prd_tokens_short$words)
-id_i <- match(prd$product_id, ii)
-id_j <- match(prd$, jj)
-idij <- cbind(id_i, id_j)
+m_rows <-  prd$product_id
+m_cols <- unique(prd_tokens_short$words)
+m_row_ids <- match(prd_tokens_short$product_id, m_rows)
+m_col_ids <- match(prd_tokens_short$words, m_cols)
+m_x_y <- cbind(m_row_ids, m_col_ids)
 
-wordhash <- Matrix(0, nrow=length(ii), ncol=length(jj),
-                   dimnames = list(ii,jj), sparse = TRUE)
+wordhash <- matrix(0, nrow=length(m_rows), ncol=length(m_cols),
+                   dimnames = list(as.character(m_rows),m_cols)) # , sparse = TRUE)
+
+wordhash[m_x_y] <- 1
+wordhash <- as_data_frame(wordhash)
+# head(wordhash)
+
+# nrow(prd)
+# nrow(wordhash)
+# prd[10000,]
+# wordhash[10000,]
+# prd_text[prd_text$product_id == 10003,]
+
+# prdx <- as.matrix(prd)
+# prdx <- cbind(prdx, wordhash)
+
+prd <- cbind(prd, wordhash)
 
 # rm(products)
 gc()
@@ -120,6 +136,11 @@ us <- orders %>%
 
 users <- users %>% inner_join(us)
 
+# usersx <- as.matrix(users, dimnames=list(as.character(users$user_id), colnames(users)))
+# colnames(usersx)
+# rownames(usersx)
+# rownames(usersx) <- users$user_id  # why didn't dimnames work?
+
 rm(us)
 gc()
 
@@ -133,7 +154,7 @@ data <- orders_products %>%
     up_last_order = max(order_number),
     up_average_cart_position = mean(add_to_cart_order))
 
-rm(orders_products, orders)
+# rm(orders_products, orders)  # Later for memory, but not while debugging
 
 data <- data %>% 
   inner_join(prd, by = "product_id") %>%
@@ -149,16 +170,6 @@ data <- data %>%
 
 rm(ordert, prd, users)
 gc()
-
-
-# Sparse Text Matrix:
-
-ii <- unique(prd_text$product_id)
-jj <- unique(prd_text$word)
-id_i <- match(data$product_id, ii)
-id_j <- match(prd_text$word, jj)
-
-M <- Matrix(0, nrow=nrow(data), ncol=length(jj), sparse=T)
 
 
 # Train / Test datasets ---------------------------------------------------
